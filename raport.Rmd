@@ -54,7 +54,9 @@ set.seed(23)
 ```{r wczytanie liczb, echo=F}
 data <- read.csv("sledzie.csv",na.strings = "?")
 ```
+  
 ### 2 Podstawowe statystyki oraz rozmiar zbioru:.
+
 ```{r rozmiar_zbioru, echo=F}
 colSums(!is.na(data))
 ```
@@ -62,7 +64,9 @@ colSums(!is.na(data))
 ```{r a, echo=F}
 print(summary(data))
 ```
+  
 ### 3 Rozk³ad wartoœci atrybutów zbioru danych.
+
 ```{r analiza_wartosci, echo=F, message=F, warning=F, error=F}
 
 library(reshape2)
@@ -71,14 +75,18 @@ ggplot(d,aes(x = value)) +
     facet_wrap(~variable,scales = "free_x") + 
     geom_histogram() + ggtitle("Rozk³ad wartoœci atrybutów")
 ```
+  
 ### 4 Wykres korelacji miêdzy zmiennymi w zbiorze.
+
 ```{r korelacja, echo=F, message=F, warning=F, error=F}
 library(corrgram)
 corrgram(data, order=TRUE, lower.panel=panel.shade,
   upper.panel=panel.pie, text.panel=panel.txt,
   main="Korelacja")
 ```
+  
 ### 5 Wykres przedstawiaj¹cy zmianê rozmiaru œledzi w czasie.
+
 ```{r interaktywny_wykres, echo=F, message=F, warning=F, error=F}
 library(plotly)
 d <- data[sample(nrow(data), 1000), ]
@@ -119,20 +127,27 @@ rfClasses <- predict(fit, newdata = testing)
 
 #library(EDAWR)
 ```
+  
 ### 6 Miary okreœlaj¹ce jakoœæ predykcji w regresji.
+
 ```{r ab123, echo=F, message=F, warning=F, error=F}
 postResample(pred = rfClasses, obs = testing$length)
 ```
-### 7 Wykres znalezionych modeli regresji
+  
+### 7 Wykres znalezionych modeli regresji.
+
 ```{r ab124, echo=F, message=F, warning=F, error=F}
 ggplot(fit) + theme_bw()+ ggtitle("Jakoœæ znalezionych modeli regresji")
 ```
-### 8 Wykres wa¿noœci atrybutów
+  
+### 8 Wykres wa¿noœci atrybutów.
+
 ```{r ab125, echo=F, message=F, warning=F, error=F}
 gbmImp <- varImp(fit, scale = FALSE)
 gbmImp
 plot(gbmImp)
 ```
+  
 Na podstawie analizy wa¿noœci atrybutów mo¿na zauwa¿yæ, ¿e d³ugoœæ œledzi zale¿y w du¿ej mierze od czasu (czyli roku) po³owu, oraz w szczególnoœci od konkretngo miesi¹ca. Wp³yw na d³ugoœæ maj¹ g³ownie nastêpuj¹ce miary (zaczynaj¹c od najwa¿niejszej) cfin1 (zagêszczenie Calanus finmarchicus gat. 1), sst (temperatura przy powierzchni wody [°C]), cfin2 (zagêszczenie Calanus finmarchicus gat. 2) oraz sal (poziom zasolenia wody [Knudsen ppt].
 ```{r}
 #plot(x, )
