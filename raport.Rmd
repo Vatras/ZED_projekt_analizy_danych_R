@@ -1,0 +1,139 @@
+---
+title: "Raport R - ZED"
+author: "Tomasz Fabisiak"
+date: "22 listopada 2016"
+output: 
+  html_document: 
+    fig_caption: yes
+    highlight: pygments
+    keep_md: yes
+    theme: cerulean
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+# Raport
+
+### 1 Wstêp.
+
+```{r, echo=F, message=F, warning=F}
+library(dplyr)
+library(ggplot2)
+usedlibs <- c("RMarkdown","Knitr","ggplot2","caret","dplyr","reshape2","corrgram","mlbench")
+```
+Niniejszy raport ma na celu analizê zbioru danych dotycz¹cych po³owu œledzi atlantyckich z ostatnich 60 lat.
+Zostanie dokonana analiza wp³ywu ró¿nych czynników na d³ugoœæ z³owionych œledzi.
+Raport zosta³ wygenerowany w jêzyku RMarkdown, u¿yte biblioteki: `r usedlibs`
+
+Nazwy atrybutów zosta³y skrócone, dok³adne ich znaczenie przedstawia siê nastêpuj¹co:
+length: d³ugoœæ z³owionego œledzia [cm];  
+cfin1: dostêpnoœæ planktonu [zagêszczenie Calanus finmarchicus gat. 1];  
+cfin2: dostêpnoœæ planktonu [zagêszczenie Calanus finmarchicus gat. 2];  
+chel1: dostêpnoœæ planktonu [zagêszczenie Calanus helgolandicus gat. 1];  
+chel2: dostêpnoœæ planktonu [zagêszczenie Calanus helgolandicus gat. 2];  
+lcop1: dostêpnoœæ planktonu [zagêszczenie wid³onogów gat. 1];  
+lcop2: dostêpnoœæ planktonu [zagêszczenie wid³onogów gat. 2];  
+fbar: natê¿enie po³owów w regionie [u³amek pozostawionego narybku];  
+recr: roczny narybek [liczba œledzi];  
+cumf: ³¹czne roczne natê¿enie po³owów w regionie [u³amek pozostawionego narybku];  
+totaln: ³¹czna liczba ryb z³owionych w ramach po³owu [liczba œledzi];  
+sst: temperatura przy powierzchni wody [°C];  
+sal: poziom zasolenia wody [Knudsen ppt];  
+xmonth: miesi¹c po³owu [numer miesi¹ca];  
+nao: oscylacja pó³nocnoatlantycka [mb].  
+
+```{r generator_liczb, echo=F}
+set.seed(23)
+```
+
+```{r wczytanie liczb, echo=F}
+data <- read.csv("sledzie.csv",na.strings = "?")
+```
+### 2 Podstawowe statystyki oraz rozmiar zbioru:.
+```{r rozmiar_zbioru, echo=F}
+colSums(!is.na(data))
+```
+
+```{r a, echo=F}
+print(summary(data))
+```
+### 3 Rozk³ad wartoœci atrybutów zbioru danych.
+```{r analiza_wartosci, echo=F, message=F, warning=F, error=F}
+
+library(reshape2)
+d <- melt(data[,-c(2:4)])
+ggplot(d,aes(x = value)) + 
+    facet_wrap(~variable,scales = "free_x") + 
+    geom_histogram() + ggtitle("Rozk³ad wartoœci atrybutów")
+```
+### 4 Wykres korelacji miêdzy zmiennymi w zbiorze.
+```{r korelacja, echo=F, message=F, warning=F, error=F}
+library(corrgram)
+corrgram(data, order=TRUE, lower.panel=panel.shade,
+  upper.panel=panel.pie, text.panel=panel.txt,
+  main="Korelacja")
+```
+### 5 Wykres przedstawiaj¹cy zmianê rozmiaru œledzi w czasie.
+```{r interaktywny_wykres, echo=F, message=F, warning=F, error=F}
+library(plotly)
+d <- data[sample(nrow(data), 1000), ]
+plot_ly(d, x = ~X, y = ~length, color = ~length,
+        size = ~X)
+```
+
+```{r ab1, echo=F, message=F, warning=F, error=F}
+library(caret)
+library(mlbench)
+data <- na.omit(data)
+inTraining <- 
+    createDataPartition(
+        # atrybut do stratyfikacji
+        y = data$length,
+        # procent w zbiorze ucz¹cym
+        p = .75,
+        # chcemy indeksy a nie listê
+        list = FALSE)
+training <- data[ inTraining,]
+testing  <- data[-inTraining,]
+ctrl <- trainControl(
+    # powtórzona ocena krzy¿owa
+    method = "repeatedcv",
+    # liczba podzia³ów
+    number = 2,
+    # liczba powtórzeñ
+    repeats = 5)
+fit <- train(length ~ .,
+             data = training,
+             method = "rf",
+             trControl = ctrl,
+             # Paramter dla algorytmu ucz¹cego
+             ntree = 10,
+             importance=T)
+rfClasses <- predict(fit, newdata = testing)
+
+
+#library(EDAWR)
+```
+### 6 Miary okreœlaj¹ce jakoœæ predykcji w regresji.
+```{r ab123, echo=F, message=F, warning=F, error=F}
+postResample(pred = rfClasses, obs = testing$length)
+```
+### 7 Wykres znalezionych modeli regresji
+```{r ab124, echo=F, message=F, warning=F, error=F}
+ggplot(fit) + theme_bw()+ ggtitle("Jakoœæ znalezionych modeli regresji")
+```
+### 8 Wykres wa¿noœci atrybutów
+```{r ab125, echo=F, message=F, warning=F, error=F}
+gbmImp <- varImp(fit, scale = FALSE)
+gbmImp
+plot(gbmImp)
+```
+Na podstawie analizy wa¿noœci atrybutów mo¿na zauwa¿yæ, ¿e d³ugoœæ œledzi zale¿y w du¿ej mierze od czasu (czyli roku) po³owu, oraz w szczególnoœci od konkretngo miesi¹ca. Wp³yw na d³ugoœæ maj¹ g³ownie nastêpuj¹ce miary (zaczynaj¹c od najwa¿niejszej) cfin1 (zagêszczenie Calanus finmarchicus gat. 1), sst (temperatura przy powierzchni wody [°C]), cfin2 (zagêszczenie Calanus finmarchicus gat. 2) oraz sal (poziom zasolenia wody [Knudsen ppt].
+```{r}
+#plot(x, )
+```
